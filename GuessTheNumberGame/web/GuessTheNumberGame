@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Number Guessing Game</title>
+    <style>
+        body {
+            /* A clean, formal, dark blue background */
+            background-color: #1a237e; 
+            font-family: Helvetica, Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            color: #333;
+        }
+
+        /* The main container for the game */
+        .game-container {
+            background-color: #f8f9fa; /* Off-white for a soft, professional look */
+            padding: 40px;
+            border-radius: 8px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            text-align: center;
+            width: 380px;
+            border-top: 5px solid #3f51b5; /* Accent color border */
+        }
+
+        /* Specific, formal font for the main title */
+        #game-title {
+            font-family: Georgia, "Times New Roman", Times, serif;
+            color: #1a237e; /* Match the background for a cohesive look */
+            font-size: 2.5em;
+            margin-bottom: 15px;
+        }
+
+        p {
+            color: #555;
+            font-size: 1.1em;
+            line-height: 1.5;
+        }
+
+        input[type="number"] {
+            width: 150px;
+            padding: 12px;
+            margin: 25px 0;
+            border: 2px solid #ced4da;
+            border-radius: 5px;
+            font-size: 22px;
+            text-align: center;
+            color: #333;
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+
+        input[type="number"]:focus {
+            outline: none;
+            border-color: #3f51b5; /* Accent color on focus */
+            box-shadow: 0 0 5px rgba(63, 81, 181, 0.5);
+        }
+
+        button {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 5px;
+            color: #ffffff;
+            font-size: 1em;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 5px;
+        }
+
+        #start-game-button {
+            background-color: #3f51b5; /* Primary accent color */
+        }
+
+        #guess-button {
+            background-color: #5c6bc0; /* A slightly lighter shade */
+        }
+
+        button:hover:not(:disabled) {
+            filter: brightness(1.1);
+        }
+        
+        button:disabled {
+            background-color: #adb5bd;
+            cursor: not-allowed;
+        }
+
+        .feedback {
+            font-size: 1.1em;
+            font-weight: bold;
+            min-height: 25px;
+            margin-top: 20px;
+            padding: 10px;
+            border-radius: 5px;
+        }
+
+        /* Different styles for each feedback type */
+        .feedback.correct {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .feedback.wrong, .feedback.lose {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .feedback.close { /* NEW feedback style */
+            background-color: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeeba;
+        }
+        
+        /* NEW: The attractive 'Attempts Left' tracker on the side */
+        #attempts-tracker {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background-color: #ffffff;
+            color: #1a237e;
+            padding: 15px 25px;
+            border-radius: 8px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
+            text-align: center;
+            font-size: 1em;
+            font-weight: bold;
+        }
+        
+        #attempts-tracker span {
+            display: block;
+            font-size: 2.5em; /* Make the number large */
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- NEW: The Attempts Left tracker is now outside the main container -->
+    <div id="attempts-tracker">
+        Attempts Left
+        <span id="attempts-left-span">--</span>
+    </div>
+
+    <div class="game-container">
+        <!-- The h1 now has an ID for specific font styling -->
+        <h1 id="game-title">Guess the Number</h1>
+        <p>I am thinking of a number between 1 and 100.</p>
+        
+        <input type="number" id="guess-input" min="1" max="100" disabled>
+        <button id="guess-button" disabled>Guess</button>
+
+        <p class="feedback" id="feedback-text"></p>
+        
+        <button id="start-game-button">Start New Game</button>
+    </div>
+
+    <script>
+        const guessInput = document.getElementById('guess-input');
+        const guessButton = document.getElementById('guess-button');
+        const feedbackText = document.getElementById('feedback-text');
+        const startGameButton = document.getElementById('start-game-button');
+        const attemptsLeftSpan = document.getElementById('attempts-left-span'); // Target the new span
+
+        // Function to start a new game
+        async function startNewRound() {
+            const response = await fetch('game?action=start', { method: 'POST' });
+            const data = await response.json();
+
+            feedbackText.textContent = data.message;
+            feedbackText.className = 'feedback'; // Reset feedback style
+            attemptsLeftSpan.textContent = data.attemptsLeft;
+
+            guessInput.disabled = false;
+            guessButton.disabled = false;
+            guessInput.value = '';
+            guessInput.focus();
+            startGameButton.textContent = 'Play Again';
+        }
+        
+        // Function to handle a user's guess
+        async function handleGuess() {
+            const userGuess = parseInt(guessInput.value);
+            if (isNaN(userGuess)) return;
+
+            const response = await fetch(`game?action=guess&guess=${userGuess}`, {
+                method: 'POST'
+            });
+            const data = await response.json();
+
+            feedbackText.textContent = data.feedback;
+            attemptsLeftSpan.textContent = data.attemptsLeft;
+
+            // NEW: Use the feedbackType from the backend to set the CSS class
+            feedbackText.className = `feedback ${data.feedbackType}`;
+
+            // Disable buttons if the game is over
+            if (data.feedbackType === 'correct' || data.feedbackType === 'lose') {
+                guessInput.disabled = true;
+                guessButton.disabled = true;
+            } else {
+                guessInput.focus();
+                guessInput.select();
+            }
+        }
+
+        // Event Listeners
+        startGameButton.addEventListener('click', startNewRound);
+        guessButton.addEventListener('click', handleGuess);
+        guessInput.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter' && !guessButton.disabled) {
+                handleGuess();
+            }
+        });
+    </script>
+</body>
+</html>

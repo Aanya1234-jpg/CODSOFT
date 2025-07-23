@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meridian Trust ATM</title>
+    <style>
+        :root {
+            --font-family-sans: "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, "Helvetica Neue", Arial, sans-serif;
+            --primary-color: #007bff;
+            --panel-bg: #212529;
+            --panel-hover-bg: #343a40;
+            --screen-bg: #ffffff;
+            --text-color: #212529;
+            --text-secondary: #6c757d;
+            --success-color: #198754;
+            --danger-color: #dc3545;
+            --border-color: #dee2e6;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes flash-green {
+            0%, 100% { color: var(--text-color); }
+            50% { color: var(--success-color); transform: scale(1.02); }
+        }
+        @keyframes flash-red {
+            0%, 100% { color: var(--text-color); }
+            50% { color: var(--danger-color); transform: scale(1.02); }
+        }
+
+        body {
+            font-family: var(--font-family-sans);
+            background-color: #f4f6f9;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        .atm-container {
+            display: flex;
+            width: 850px;
+            height: 520px;
+            background-color: var(--screen-bg);
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.12);
+            overflow: hidden;
+        }
+        
+        .atm-panel {
+            flex: 1;
+            padding: 30px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: 20px;
+            background-color: var(--panel-bg);
+        }
+
+        .panel-button {
+            width: 100%;
+            padding: 15px;
+            font-size: 1.05em;
+            font-weight: 500;
+            border-radius: 8px;
+            border: 1px solid #495057;
+            background-color: transparent;
+            color: #adb5bd;
+            cursor: pointer;
+            text-align: left;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .panel-button .icon { stroke-width: 2; color: #6c757d; transition: all 0.2s ease; }
+
+        .panel-button:hover {
+            background-color: var(--panel-hover-bg);
+            color: #f8f9fa;
+            border-color: #6c757d;
+        }
+        .panel-button:hover .icon { color: var(--primary-color); }
+
+        .atm-screen {
+            flex: 2;
+            padding: 40px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .screen-header h1 {
+            margin: 0;
+            color: var(--text-color);
+            font-weight: 700;
+            font-size: 1.8em;
+        }
+        .screen-header h4 {
+            margin: 5px 0 0 0;
+            font-weight: 400;
+            color: var(--text-secondary);
+        }
+
+        .screen-main {
+            text-align: left;
+            flex-grow: 1;
+            padding-top: 40px;
+        }
+        
+        .balance-display, .transaction-area {
+            opacity: 0;
+            height: 0;
+            overflow: hidden;
+            transition: opacity 0.4s ease, height 0.4s ease;
+        }
+        .balance-display.visible, .transaction-area.visible {
+            opacity: 1;
+            height: auto;
+            animation: fadeIn 0.5s ease;
+        }
+
+        .balance-display.visible { margin-bottom: 30px; }
+        .transaction-area.visible { margin-top: 20px; }
+
+        .balance-display h2 {
+            font-size: 0.9em;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin: 0 0 5px 0;
+            text-transform: uppercase;
+            letter-spacing: 1.2px;
+        }
+        .balance-display .amount {
+            font-size: 3.5em;
+            font-weight: 700;
+            color: var(--text-color);
+            margin: 0;
+        }
+        .balance-display .amount.flash-green { animation: flash-green 0.8s; }
+        .balance-display .amount.flash-red { animation: flash-red 0.8s; }
+
+        .message-area {
+            min-height: 24px;
+            padding: 12px;
+            border-radius: 6px;
+            font-size: 1em;
+            border: 1px solid transparent;
+        }
+        .message-area.default { color: var(--text-secondary); }
+        .message-area.success { border-color: #b3dfc1; background-color: #f6fbf8; color: var(--success-color); }
+        .message-area.error { border-color: #f7d3d6; background-color: #fef6f7; color: var(--danger-color); }
+
+        .transaction-area { display: flex; align-items: center; gap: 15px; }
+        .transaction-area input {
+            padding: 12px;
+            font-size: 1.1em;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+        }
+        .transaction-area input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.2);
+        }
+        .transaction-area .confirm-button {
+            padding: 12px 25px;
+            font-size: 1em;
+            font-weight: 500;
+            border-radius: 6px;
+            border: none;
+            background-color: var(--primary-color);
+            color: white;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="atm-container">
+        <div class="atm-panel">
+            <button class="panel-button" id="balance-btn">
+                <svg class="icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect><line x1="1" y1="10" x2="23" y2="10"></line></svg>
+                Check Balance
+            </button>
+            <button class="panel-button" id="deposit-btn">
+                <svg class="icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 5v14"></path><path d="m19 12-7 7-7-7"></path></svg>
+                Deposit Funds
+            </button>
+            <button class="panel-button" id="withdraw-btn">
+                <svg class="icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 19V5"></path><path d="m5 12 7-7 7 7"></path></svg>
+                Withdraw Cash
+            </button>
+        </div>
+        <div class="atm-screen">
+            <div class="screen-header">
+                <h1>Meridian Trust</h1>
+                <h4>Aanya's ATM</h4>
+            </div>
+            <div class="screen-main">
+                <div class="message-area default" id="message-area">Welcome. Please select an option to begin.</div>
+                
+                <div class="balance-display" id="balance-display">
+                    <h2>Available Balance</h2>
+                    <p class="amount" id="balance-amount"></p>
+                </div>
+                
+                <div id="transaction-area" class="transaction-area">
+                    <input type="number" id="amount-input" placeholder="Enter Amount (₹)">
+                    <button id="confirm-button" class="confirm-button">Confirm</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const balanceDisplayEl = document.getElementById('balance-display');
+        const balanceAmountEl = document.getElementById('balance-amount');
+        const messageAreaEl = document.getElementById('message-area');
+        const transactionAreaEl = document.getElementById('transaction-area');
+        const amountInputEl = document.getElementById('amount-input');
+        const confirmButton = document.getElementById('confirm-button');
+        const balanceBtn = document.getElementById('balance-btn');
+        const depositBtn = document.getElementById('deposit-btn');
+        const withdrawBtn = document.getElementById('withdraw-btn');
+        
+        let currentAction = '';
+        let lastKnownBalance = null;
+
+        function updateUI(data) {
+            const newBalance = parseFloat(data.balance.replace(/[₹,]/g, ''));
+
+            if (lastKnownBalance !== null) {
+                if (newBalance > lastKnownBalance) {
+                    balanceAmountEl.classList.add('flash-green');
+                } else if (newBalance < lastKnownBalance) {
+                    balanceAmountEl.classList.add('flash-red');
+                }
+            }
+            setTimeout(() => {
+                balanceAmountEl.classList.remove('flash-green', 'flash-red');
+            }, 800);
+
+            lastKnownBalance = newBalance;
+            balanceAmountEl.textContent = data.balance;
+            messageAreaEl.textContent = data.message;
+            messageAreaEl.className = 'message-area ' + (data.success ? 'success' : 'error');
+        }
+
+        async function performTransaction(action, amount = 0) {
+            const params = new URLSearchParams();
+            params.append('action', action);
+            if (amount) {
+                params.append('amount', amount);
+            }
+
+            try {
+                const response = await fetch('atm-service', { method: 'POST', body: params });
+                if (!response.ok) throw new Error('Network response was not ok.');
+                const data = await response.json();
+                updateUI(data);
+            } catch (error) {
+                console.error('Fetch error:', error);
+                messageAreaEl.textContent = 'Error communicating with the bank. Please try again.';
+                messageAreaEl.className = 'message-area error';
+            }
+        }
+
+        function setupTransactionUI(action) {
+            currentAction = action;
+            balanceDisplayEl.classList.remove('visible');
+            transactionAreaEl.classList.add('visible');
+_blank
+            amountInputEl.value = '';
+            amountInputEl.focus();
+            messageAreaEl.className = 'message-area default';
+            messageAreaEl.textContent = `Please enter the amount to ${action}.`;
+        }
+        
+        balanceBtn.addEventListener('click', () => {
+            transactionAreaEl.classList.remove('visible');
+            balanceDisplayEl.classList.add('visible');
+            performTransaction('checkBalance');
+        });
+
+        depositBtn.addEventListener('click', () => {
+            setupTransactionUI('deposit');
+        });
+
+        withdrawBtn.addEventListener('click', () => {
+            setupTransactionUI('withdraw');
+        });
+        
+        confirmButton.addEventListener('click', () => {
+            const amount = amountInputEl.value;
+            if (amount && currentAction) {
+                performTransaction(currentAction, amount);
+                transactionAreaEl.classList.remove('visible');
+                balanceDisplayEl.classList.add('visible');
+            }
+        });
+
+        document.addEventListener('DOMContentLoaded', () => {
+             performTransaction('checkBalance');
+        });
+    </script>
+</body>
+</html>

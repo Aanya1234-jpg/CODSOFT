@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>University Student Portal</title>
+    <style>
+        :root {
+            --primary-color: #4f46e5;
+            --secondary-color: #7c3aed;
+            --panel-bg: #111827;
+            --screen-bg: #f3f4f6;
+            --surface-color: #ffffff;
+            --text-light: #f9fafb;
+            --text-dark: #1f2937;
+            --text-muted: #6b7280;
+            --border-color: #e5e7eb;
+            --success-color: #10b981;
+            --danger-color: #ef4444;
+        }
+
+        body {
+            font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: var(--screen-bg);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            padding-top: 5vh;
+            min-height: 95vh;
+        }
+        
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        .system-container {
+            display: flex;
+            width: 1100px;
+            min-height: 680px;
+            background-color: var(--surface-color);
+            border-radius: 16px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            animation: fadeIn 0.5s ease-out;
+        }
+        
+        .system-panel {
+            flex: 0 0 280px;
+            padding: 30px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            background: var(--panel-bg);
+            color: var(--text-light);
+        }
+
+        .panel-header { margin-bottom: 40px; }
+        .panel-header h1 { margin: 0; font-size: 1.6em; }
+        .panel-header p { margin: 5px 0 0 0; opacity: 0.7; font-size: 0.9em; }
+
+        .panel-button {
+            width: 100%;
+            padding: 12px 15px;
+            font-size: 1em;
+            margin-bottom: 12px;
+            border-radius: 8px;
+            border: 1px solid #374151;
+            background-color: #1f2937;
+            color: #d1d5db;
+            cursor: pointer;
+            text-align: left;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .panel-button:hover { background-color: #374151; color: white; }
+        .panel-button .icon { stroke-width: 2; width: 20px; height: 20px; }
+        
+        .system-screen { flex: 1; padding: 40px; }
+        .view { display: none; }
+        .view.active { display: block; animation: fadeIn 0.4s; }
+
+        h2 { font-size: 1.8em; color: var(--text-dark); border-bottom: 2px solid var(--primary-color); padding-bottom: 10px; margin-top: 0; margin-bottom: 30px; }
+        
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px 30px; }
+        .form-group { margin-bottom: 1em; }
+        label { display: block; margin-bottom: 0.5em; font-weight: 500; color: var(--text-muted); }
+        input {
+            width: 100%;
+            padding: 0.8em;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            box-sizing: border-box;
+            font-size: 1em;
+        }
+        input:focus { outline: none; border-color: var(--primary-color); box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.2); }
+        .form-buttons { grid-column: span 2; margin-top: 20px; display: flex; gap: 10px; }
+        button { padding: 0.8em 1.5em; border: none; border-radius: 6px; cursor: pointer; font-weight: 500; font-size: 1em; }
+        .btn-primary { background: linear-gradient(to right, var(--secondary-color), var(--primary-color)); color: white; }
+        .btn-secondary { background-color: var(--text-muted); color: white; }
+
+        .sort-controls {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 25px;
+            padding: 15px;
+            background-color: #eef2f5;
+            border-radius: 8px;
+            align-items: center;
+        }
+        .sort-controls label { font-weight: 500; color: var(--text-muted); margin-bottom: 0; }
+        .sort-controls select {
+            padding: 8px;
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+            font-size: 0.9em;
+        }
+
+        .course-group h3 {
+            font-size: 1.2em;
+            color: var(--primary-color);
+            margin-top: 25px;
+            margin-bottom: 15px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .course-group:first-child h3 { margin-top: 0; }
+        
+        table { width: 100%; border-collapse: collapse; }
+        th, td { text-align: left; padding: 12px 15px; border-bottom: 1px solid var(--border-color); }
+        thead th { color: var(--text-muted); font-size: 0.85em; text-transform: uppercase; }
+        tbody tr:hover { background-color: #f9fafb; }
+        .action-buttons button { background: none; border: none; cursor: pointer; padding: 5px; opacity: 0.7; }
+        .action-buttons button:hover { opacity: 1; transform: scale(1.1); }
+        
+        #toast-notification {
+            position: fixed;
+            bottom: -100px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 15px 25px;
+            border-radius: 8px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            font-size: 1.1em;
+            color: white;
+            opacity: 0;
+            transition: all 0.4s cubic-bezier(0.215, 0.610, 0.355, 1);
+        }
+        #toast-notification.show { bottom: 30px; opacity: 1; }
+        #toast-notification.success { background-color: var(--success-color); }
+        #toast-notification.error { background-color: var(--danger-color); }
+    </style>
+</head>
+<body>
+
+    <div class="system-container">
+        <div class="system-panel">
+            <div class="panel-header">
+                <h1>Student Portal</h1>
+                <p>University Management</p>
+            </div>
+            <button class="panel-button" id="show-add-btn">
+                <svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v6m3-3H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                Add Student
+            </button>
+            <button class="panel-button" id="show-search-btn">
+                <svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                Find Student
+            </button>
+            <button class="panel-button" id="show-records-btn">
+                <svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
+                View All Records
+            </button>
+        </div>
+
+        <div class="system-screen">
+            <div id="home-view" class="view active">
+                <h2>Welcome</h2>
+                <p>Please select an action from the left panel to begin.</p>
+            </div>
+            <div id="form-view" class="view">
+                <h2 id="form-title">Add New Student</h2>
+                <form id="student-form" class="form-grid">
+                    <input type="hidden" id="student-id" name="id">
+                    <div class="form-group"><label for="name">Full Name</label><input type="text" id="name" name="name" required></div>
+                    <div class="form-group"><label for="enrollmentNumber">Enrollment Number</label><input type="text" id="enrollmentNumber" name="enrollmentNumber" required></div>
+                    <div class="form-group"><label for="course">Course</label><input type="text" id="course" name="course" required></div>
+                    <div class="form-group"><label for="cgpa">Current CGPA</label><input type="number" step="0.01" id="cgpa" name="cgpa" required></div>
+                    <div class="form-buttons">
+                        <button type="submit" class="btn-primary">Save Student</button>
+                        <button type="button" id="clear-form-btn" class="btn-secondary">Clear</button>
+                    </div>
+                </form>
+            </div>
+            <div id="search-view" class="view">
+                <h2>Find Student</h2>
+                <div class="search-box">
+                    <input type="text" id="search-enrollment" placeholder="Enter Enrollment Number...">
+                    <button id="search-btn" class="btn-primary">Search</button>
+                </div>
+                <div id="search-result-container" style="margin-top: 30px;"></div>
+            </div>
+            <div id="records-view" class="view">
+                <h2>All Student Records</h2>
+                <div class="sort-controls">
+                    <div>
+                        <label for="sort-by">Sort By:</label>
+                        <select id="sort-by">
+                            <option value="course">Course (Default)</option>
+                            <option value="name">Name</option>
+                            <option value="cgpa">CGPA</option>
+                            <option value="date">Registration Date</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="sort-direction">Direction:</label>
+                        <select id="sort-direction">
+                            <option value="asc">Ascending</option>
+                            <option value="desc">Descending</option>
+                        </select>
+                    </div>
+                </div>
+                <div id="records-container"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast-notification"></div>
+
+    <script>
+        const API_URL = 'api/students';
+        const views = document.querySelectorAll('.view');
+        const form = document.getElementById('student-form');
+        const formTitle = document.getElementById('form-title');
+        const toastEl = document.getElementById('toast-notification');
+        const sortSelect = document.getElementById('sort-by');
+        const directionSelect = document.getElementById('sort-direction');
+        
+        let toastTimeout;
+        let fullStudentList = [];
+
+        function showView(viewId) {
+            views.forEach(view => view.classList.remove('active'));
+            document.getElementById(viewId).classList.add('active');
+        }
+
+        function showToast(message, type = 'success') {
+            clearTimeout(toastTimeout);
+            toastEl.textContent = message;
+            toastEl.className = type;
+            toastEl.classList.add('show');
+            toastTimeout = setTimeout(() => { toastEl.classList.remove('show'); }, 3000);
+        }
+
+        function sortAndRender() {
+            const sortBy = sortSelect.value;
+            const direction = directionSelect.value === 'asc' ? 1 : -1;
+
+            let sortedList = [...fullStudentList];
+
+            sortedList.sort((a, b) => {
+                let valA, valB;
+                switch (sortBy) {
+                    case 'name':
+                        valA = a.name.toLowerCase();
+                        valB = b.name.toLowerCase();
+                        if (valA < valB) return -1 * direction;
+                        if (valA > valB) return 1 * direction;
+                        return 0;
+                    case 'cgpa':
+                        return (a.cgpa - b.cgpa) * direction;
+                    case 'date':
+                        return (new Date(a.registrationDate) - new Date(b.registrationDate)) * direction;
+                    default:
+                        let courseCompare = a.course.localeCompare(b.course);
+                        if (courseCompare !== 0) return courseCompare;
+                        return a.name.localeCompare(b.name);
+                }
+            });
+            
+            if (direction === -1 && sortBy === 'course') {
+                sortedList.reverse();
+            }
+
+            renderStudentTables(sortedList);
+        }
+
+        function renderStudentTables(studentList) {
+            const recordsContainer = document.getElementById('records-container');
+            recordsContainer.innerHTML = '';
+            
+            if (!studentList || studentList.length === 0) {
+                recordsContainer.innerHTML = '<p>No student records found.</p>';
+                return;
+            }
+
+            const groupedByCourse = studentList.reduce((acc, student) => {
+                (acc[student.course] = acc[student.course] || []).push(student);
+                return acc;
+            }, {});
+
+            const courseKeys = Object.keys(groupedByCourse);
+            if (sortSelect.value === 'course' && directionSelect.value === 'desc') {
+                courseKeys.reverse();
+            }
+
+            courseKeys.forEach(course => {
+                const students = groupedByCourse[course];
+                let tableRows = '';
+                students.forEach(student => {
+                    tableRows += `
+                        <tr>
+                            <td>${student.name}</td>
+                            <td>${student.enrollmentNumber}</td>
+                            <td>${student.cgpa.toFixed(2)}</td>
+                            <td class="action-buttons">
+                                <button onclick='editStudent(${JSON.stringify(student)})' title="Edit">✏️</button>
+                                <button onclick='deleteStudent(${student.id})' title="Delete">🗑️</button>
+                            </td>
+                        </tr>`;
+                });
+                
+                recordsContainer.innerHTML += `
+                    <div class="course-group">
+                        <h3>${course}</h3>
+                        <table>
+                            <thead><tr><th>Name</th><th>Enrollment No.</th><th>CGPA</th><th>Actions</th></tr></thead>
+                            <tbody>${tableRows}</tbody>
+                        </table>
+                    </div>`;
+            });
+        }
+
+        async function fetchAllStudents() {
+            try {
+                const response = await fetch(API_URL);
+                const groupedData = await response.json();
+                fullStudentList = Object.values(groupedData).flat();
+                sortAndRender();
+            } catch (err) {
+                showToast('Failed to load student records.', 'error');
+            }
+        }
+        
+        document.getElementById('show-add-btn').addEventListener('click', () => {
+            form.reset();
+            formTitle.textContent = 'Add New Student';
+            form.querySelector('#student-id').value = '';
+            showView('form-view');
+        });
+
+        document.getElementById('show-search-btn').addEventListener('click', () => {
+            showView('search-view');
+            document.getElementById('search-result-container').innerHTML = '';
+            document.getElementById('search-enrollment').value = '';
+        });
+
+        document.getElementById('show-records-btn').addEventListener('click', () => {
+            showView('records-view');
+            fetchAllStudents();
+        });
+
+        document.getElementById('clear-form-btn').addEventListener('click', () => form.reset());
+        sortSelect.addEventListener('change', sortAndRender);
+        directionSelect.addEventListener('change', sortAndRender);
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const action = form.querySelector('#student-id').value ? 'update' : 'add';
+            const formData = new FormData(form);
+            formData.append('action', action);
+
+            const response = await fetch(API_URL, { method: 'POST', body: new URLSearchParams(formData) });
+            const result = await response.json();
+
+            if (response.ok) {
+                showToast(result.message, 'success');
+                showView('records-view');
+                fetchAllStudents();
+            } else {
+                showToast(result.error, 'error');
+            }
+        });
+
+        document.getElementById('search-btn').addEventListener('click', async () => {
+            const enrollmentNumber = document.getElementById('search-enrollment').value;
+            if(!enrollmentNumber) return;
+            const params = new URLSearchParams({ action: 'search', enrollmentNumber });
+            
+            const response = await fetch(API_URL, { method: 'POST', body: params });
+            const resultContainer = document.getElementById('search-result-container');
+            
+            if (response.ok) {
+                const student = await response.json();
+                resultContainer.innerHTML = `<h3>Student Found</h3><p><strong>Name:</strong> ${student.name}<br><strong>Course:</strong> ${student.course}<br><strong>CGPA:</strong> ${student.cgpa}</p>`;
+            } else {
+                const result = await response.json();
+                resultContainer.innerHTML = `<p style="color:var(--danger-color);">${result.error}</p>`;
+            }
+        });
+
+        function editStudent(student) {
+            showView('form-view');
+            formTitle.textContent = 'Edit Student Details';
+            form.querySelector('#student-id').value = student.id;
+            form.querySelector('#name').value = student.name;
+            form.querySelector('#enrollmentNumber').value = student.enrollmentNumber;
+            form.querySelector('#course').value = student.course;
+            form.querySelector('#cgpa').value = student.cgpa;
+        }
+
+        async function deleteStudent(id) {
+            if (confirm('Are you sure you want to delete this student record?')) {
+                const params = new URLSearchParams({ action: 'delete', id });
+                const response = await fetch(API_URL, { method: 'POST', body: params });
+                const result = await response.json();
+
+                if (response.ok) {
+                    showToast(result.message, 'success');
+                    fetchAllStudents();
+                } else {
+                    showToast(result.error, 'error');
+                }
+            }
+        }
+    </script>
+</body>
+</html>

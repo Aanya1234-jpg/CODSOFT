@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Oracle's Gambit</title>
+    <style>
+        body {
+            background-color: #004d40;
+            font-family: 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        .game-container {
+            background-color: #ffffff;
+            padding: 30px 40px;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            text-align: center;
+            width: 380px;
+            border: 3px solid #00bcd4;
+            position: relative;
+            z-index: 10;
+        }
+
+        #game-title {
+            font-family: 'Georgia', 'Times New Roman', serif;
+            font-weight: 700;
+            color: #00796b;
+            font-size: 2.8em;
+            margin: 0;
+            letter-spacing: 1px;
+        }
+
+        #game-subtitle {
+            font-family: 'Courier New', Courier, monospace;
+            font-weight: 400;
+            color: #757575;
+            font-size: 1.1em;
+            margin: 5px 0 20px 0;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        p { color: #424242; font-size: 1.1em; line-height: 1.5; }
+
+        input[type="number"] {
+            width: 150px;
+            padding: 12px;
+            margin: 20px 0;
+            border: 2px solid #b2dfdb;
+            border-radius: 8px;
+            font-size: 24px;
+            font-weight: bold;
+            text-align: center;
+            color: #00796b;
+            transition: all 0.3s ease;
+        }
+        input[type="number"]:focus {
+            outline: none;
+            border-color: #009688;
+            box-shadow: 0 0 10px rgba(0, 150, 136, 0.4);
+        }
+
+        button {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 8px;
+            color: white;
+            font-size: 1em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 5px;
+        }
+        
+        .difficulty-btn { background-color: #009688; }
+        .difficulty-btn.medium { background-color: #ff9800; }
+        .difficulty-btn.hard { background-color: #f44336; }
+
+        #guess-button { background-color: #00796b; }
+        #play-again-btn { background-color: #009688; margin-top: 15px; }
+
+        button:hover:not(:disabled) { transform: translateY(-2px); filter: brightness(1.1); }
+        button:disabled { background-color: #bdbdbd; cursor: not-allowed; }
+        
+        .feedback {
+            font-size: 1.2em;
+            font-weight: bold;
+            min-height: 28px;
+            margin-top: 20px;
+        }
+        
+        #win-popup {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0.7);
+            background: white;
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            text-align: center;
+            z-index: 100;
+            border: 3px solid #009688;
+            opacity: 0;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        #win-popup.show { display: block; opacity: 1; transform: translate(-50%, -50%) scale(1); }
+        #win-popup h2 { font-size: 2.5em; color: #00796b; margin-top: 0; }
+        #win-popup p { font-size: 1.2em; color: #424242; }
+        .win-emoji { font-size: 4em; display: block; margin-bottom: 20px; }
+        
+        #confetti-canvas {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 99;
+        }
+
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+
+    <canvas id="confetti-canvas"></canvas>
+
+    <div class="game-container">
+        <h1 id="game-title">Quantum Lock</h1>
+        <h5 id="game-subtitle">A Guess the Number Game</h5>
+        
+        <div id="difficulty-selection">
+            <p id="instruction-text">Alright, challenger. My number is hidden somewhere between 1 and 100.</p>
+            <p>Choose your difficulty:</p>
+            <button class="difficulty-btn" onclick="startGame(10)">Easy (10 Attempts)</button>
+            <button class="difficulty-btn medium" onclick="startGame(5)">Medium (5 Attempts)</button>
+            <button class="difficulty-btn hard" onclick="startGame(3)">Hard (3 Attempts)</button>
+        </div>
+
+        <div id="game-play-area" class="hidden">
+            <p>Let the guessing begin!!!</p>
+            <input type="number" id="guess-input" min="1" max="100">
+            <button id="guess-button">Guess</button>
+            <p class="feedback" id="feedback-text"></p>
+        </div>
+
+        <div id="play-again-container" class="hidden">
+            <button id="play-again-btn">Play Again</button>
+        </div>
+    </div>
+
+    <div id="win-popup">
+        <span id="win-emoji" class="win-emoji"></span>
+        <h2 id="win-title">Correct!</h2>
+        <p id="win-message"></p>
+        <button id="play-again-popup-btn">Play Again</button>
+    </div>
+
+    <script>
+        const guessInput = document.getElementById('guess-input');
+        const guessButton = document.getElementById('guess-button');
+        const feedbackText = document.getElementById('feedback-text');
+        const playAgainPopupBtn = document.getElementById('play-again-popup-btn');
+        const winPopup = document.getElementById('win-popup');
+        const difficultySelectionDiv = document.getElementById('difficulty-selection');
+        const gamePlayAreaDiv = document.getElementById('game-play-area');
+        const playAgainContainer = document.getElementById('play-again-container');
+        const playAgainBtn = document.getElementById('play-again-btn');
+        
+        let secretNumber = 0;
+        let maxAttempts = 0;
+        let attemptsLeft = 0;
+        let confettiAnimationId;
+
+        function startGame(difficulty) {
+            maxAttempts = difficulty;
+            attemptsLeft = maxAttempts;
+            secretNumber = Math.floor(Math.random() * 100) + 1;
+
+            difficultySelectionDiv.classList.add('hidden');
+            gamePlayAreaDiv.classList.remove('hidden');
+            
+            feedbackText.textContent = `You have ${attemptsLeft} attempts remaining.`;
+            guessInput.disabled = false;
+            guessButton.disabled = false;
+            guessInput.value = '';
+            guessInput.focus();
+        }
+
+        function handleGuess() {
+            const userGuess = parseInt(guessInput.value);
+            if (isNaN(userGuess) || userGuess < 1 || userGuess > 100) {
+                feedbackText.textContent = 'Please enter a number from 1 to 100.';
+                return;
+            }
+
+            attemptsLeft--;
+            const attemptsTaken = maxAttempts - attemptsLeft;
+
+            if (userGuess === secretNumber) {
+                let winMsg = `You solved the enigma in ${attemptsTaken} attempt(s)!`;
+                let winEmoji = '🥳';
+                if (attemptsTaken <= 2) {
+                    winMsg = "Incredible! You guessed it on one of the first two tries!";
+                    winEmoji = '💅';
+                }
+                if (maxAttempts === 3 && attemptsTaken === 1) {
+                    winMsg = "A perfect guess on the hardest difficulty. Truly masterful!";
+                    winEmoji = '👑';
+                }
+                showWinPopup(winMsg, winEmoji);
+            } else if (attemptsLeft === 0) {
+                feedbackText.innerHTML = `😂 Out of attempts! The number was ${secretNumber}.`;
+                playAgainContainer.classList.remove('hidden');
+                endGame();
+            } else {
+                const difference = Math.abs(userGuess - secretNumber);
+                let hint = userGuess > secretNumber ? 'Too High' : 'Too Low';
+                if (difference <= 10) {
+                    hint += '... but you\'re close! 🥱';
+                }
+                feedbackText.innerHTML = `${hint}<br>(${attemptsLeft} attempts remaining)`;
+            }
+            guessInput.focus();
+            guessInput.select();
+        }
+
+        function showWinPopup(message, emoji) {
+            document.getElementById('win-emoji').textContent = emoji;
+            document.getElementById('win-message').textContent = message;
+            winPopup.classList.add('show');
+            launchConfetti();
+            endGame();
+        }
+        
+        function endGame() {
+            guessInput.disabled = true;
+            guessButton.disabled = true;
+        }
+        
+        function resetGame() {
+            stopConfetti();
+            winPopup.classList.remove('show');
+            gamePlayAreaDiv.classList.add('hidden');
+            playAgainContainer.classList.add('hidden');
+            difficultySelectionDiv.classList.remove('hidden');
+        }
+
+        playAgainPopupBtn.addEventListener('click', resetGame);
+        playAgainBtn.addEventListener('click', resetGame);
+        guessButton.addEventListener('click', handleGuess);
+        guessInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !guessButton.disabled) handleGuess();
+        });
+        
+        const confettiCanvas = document.getElementById('confetti-canvas');
+        const confettiCtx = confettiCanvas.getContext('2d');
+        let confettiPieces = [];
+
+        function launchConfetti() {
+            confettiCanvas.width = window.innerWidth;
+            confettiCanvas.height = window.innerHeight;
+            confettiPieces = [];
+            for (let i = 0; i < 150; i++) {
+                confettiPieces.push({
+                    x: Math.random() * confettiCanvas.width,
+                    y: -20,
+                    size: Math.random() * 5 + 2,
+                    speed: Math.random() * 5 + 2,
+                    angle: Math.random() * 360,
+                    color: `hsl(${Math.random() * 360}, 100%, 50%)`
+                });
+            }
+            animateConfetti();
+        }
+        
+        function animateConfetti() {
+            confettiCtx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
+            let activePieces = false;
+            confettiPieces.forEach(p => {
+                p.y += p.speed;
+                p.x += Math.sin(p.angle);
+                if (p.y < confettiCanvas.height + 20) {
+                    confettiCtx.fillStyle = p.color;
+                    confettiCtx.fillRect(p.x, p.y, p.size, p.size);
+                    activePieces = true;
+                }
+            });
+            if (activePieces) {
+                confettiAnimationId = requestAnimationFrame(animateConfetti);
+            }
+        }
+
+        function stopConfetti() {
+            if(confettiAnimationId) {
+                cancelAnimationFrame(confettiAnimationId);
+            }
+            confettiCtx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
+        }
+    </script>
+</body>
+</html>
